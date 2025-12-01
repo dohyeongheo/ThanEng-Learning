@@ -20,11 +20,11 @@
         }
 
         [data-theme="dark"] {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #2d2d2d;
-            --text-primary: #f5f5f5;
-            --text-secondary: #a0a0a0;
-            --border-color: #404040;
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #333333;
         }
 
         body {
@@ -178,6 +178,38 @@
         [data-theme="dark"] input::placeholder {
             color: var(--text-secondary);
         }
+
+        /* 다크 모드 배경색 추가 */
+        [data-theme="dark"] .bg-blue-50 {
+            background-color: #1a2332 !important;
+        }
+
+        [data-theme="dark"] .bg-yellow-50 {
+            background-color: #2d2419 !important;
+        }
+
+        [data-theme="dark"] .bg-red-50 {
+            background-color: #2d1a1a !important;
+        }
+
+        [data-theme="dark"] .border-blue-100 {
+            border-color: #2a3a4d !important;
+        }
+
+        [data-theme="dark"] .border-yellow-200 {
+            border-color: #3d2e1f !important;
+        }
+
+        [data-theme="dark"] .border-red-200 {
+            border-color: #3d2222 !important;
+        }
+
+        /* 텍스트 잘림 방지 */
+        .break-words {
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
     </style>
 </head>
 
@@ -243,7 +275,7 @@
         </div>
 
         <!-- Content -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-10" id="content-area" role="tabpanel" aria-live="polite" aria-atomic="true"></div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-20" id="content-area" role="tabpanel" aria-live="polite" aria-atomic="true"></div>
     </div>
 
     <script>
@@ -967,9 +999,9 @@
                                 <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">태국어 #${index + 1}</span>
                                 <i class="fas fa-volume-high text-gray-300 text-sm" aria-hidden="true"></i>
                             </div>
-                            <h4 class="text-lg font-bold text-[#333] mb-1 thai-font">${highlightText(escapedT, query)}</h4>
-                            <p class="text-sm text-[#ef4444] font-bold mb-1">${highlightText(escapedK, query)}</p>
-                            <p class="text-sm text-gray-500">${highlightText(escapedM, query)}</p>
+                            <h4 class="text-lg font-bold text-[#333] mb-1 thai-font break-words">${highlightText(escapedT, query)}</h4>
+                            <p class="text-sm text-[#ef4444] font-bold mb-1 break-words">${highlightText(escapedK, query)}</p>
+                            <p class="text-sm text-gray-500 break-words">${highlightText(escapedM, query)}</p>
                         </div>
                         `;
                     } else {
@@ -981,8 +1013,8 @@
                                 <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">영어 #${index + 1}</span>
                                 <i class="fas fa-volume-high text-gray-300 text-sm" aria-hidden="true"></i>
                             </div>
-                            <h4 class="text-base font-bold text-[#333] mb-1 italic">"${highlightText(escapedT, query)}"</h4>
-                            <p class="text-sm text-gray-500">${highlightText(escapedM, query)}</p>
+                            <h4 class="text-base font-bold text-[#333] mb-1 italic break-words">"${highlightText(escapedT, query)}"</h4>
+                            <p class="text-sm text-gray-500 break-words">${highlightText(escapedM, query)}</p>
                         </div>
                         `;
                     }
@@ -1218,9 +1250,9 @@
                                 </div>
                             </div>
                             <div onclick="openDay(${item.day}); setTimeout(() => setTab('th'), 100);">
-                                <h3 class="text-xl font-bold text-[#333] mb-1 thai-font leading-relaxed">${escapedT}</h3>
-                                <p class="text-sm text-[#ef4444] font-bold mb-1">${escapedK}</p>
-                                <p class="text-sm text-gray-500">${escapedM}</p>
+                                <h3 class="text-xl font-bold text-[#333] mb-1 thai-font leading-relaxed break-words">${escapedT}</h3>
+                                <p class="text-sm text-[#ef4444] font-bold mb-1 break-words">${escapedK}</p>
+                                <p class="text-sm text-gray-500 break-words">${escapedM}</p>
                             </div>
                         </div>
                         `;
@@ -1241,8 +1273,8 @@
                                 </div>
                             </div>
                             <div onclick="openDay(${item.day}); setTimeout(() => setTab('en'), 100);">
-                                <h3 class="text-lg font-bold text-[#333] mb-2 italic serif">"${escapedT}"</h3>
-                                <p class="text-sm text-gray-500 font-medium">${escapedM}</p>
+                                <h3 class="text-lg font-bold text-[#333] mb-2 italic serif break-words">"${escapedT}"</h3>
+                                <p class="text-sm text-gray-500 font-medium break-words">${escapedM}</p>
                             </div>
                         </div>
                         `;
@@ -1347,9 +1379,9 @@
                             </div>
                         </div>
                         <div onclick="speak('${escapedT.replace(/'/g, "\\'")}', 'th')">
-                            <h3 class="text-xl font-bold text-[#333] mb-1 thai-font leading-relaxed">${escapedT}</h3>
-                            <p class="text-sm text-[#ef4444] font-bold mb-1">${escapedK}</p>
-                            <p class="text-sm text-gray-500">${escapedM}</p>
+                            <h3 class="text-xl font-bold text-[#333] mb-1 thai-font leading-relaxed break-words">${escapedT}</h3>
+                            <p class="text-sm text-[#ef4444] font-bold mb-1 break-words">${escapedK}</p>
+                            <p class="text-sm text-gray-500 break-words">${escapedM}</p>
                         </div>
                     </div>`;
                 });
@@ -1373,8 +1405,8 @@
                             </div>
                         </div>
                         <div onclick="speak('${escapedT.replace(/'/g, "\\'")}', 'en')">
-                            <h3 class="text-lg font-bold text-[#333] mb-2 italic serif">"${escapedT}"</h3>
-                            <p class="text-sm text-gray-500 font-medium">${escapedM}</p>
+                            <h3 class="text-lg font-bold text-[#333] mb-2 italic serif break-words">"${escapedT}"</h3>
+                            <p class="text-sm text-gray-500 font-medium break-words">${escapedM}</p>
                         </div>
                     </div>`;
                 });
