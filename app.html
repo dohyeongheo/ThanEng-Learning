@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BKK HUSTLER: REAL DATA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Sarabun:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f2f4f6;
+            color: #191f28;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .thai-font {
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .card-press:active {
+            transform: scale(0.98);
+            background-color: #f9fafb;
+            transition: 0.1s;
+        }
+
+        .tab-active {
+            background-color: white;
+            color: #3182f6;
+            font-weight: 700;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .tab-inactive {
+            color: #8b95a1;
+            background-color: transparent;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col max-w-md mx-auto bg-white sm:bg-[#f2f4f6] sm:shadow-2xl overflow-hidden">
+
+    <!-- VIEW 1: DAY LIST -->
+    <div id="view-list" class="flex flex-col h-full bg-[#f2f4f6]">
+        <div class="px-6 pt-12 pb-4 bg-white sticky top-0 z-10 rounded-b-3xl shadow-sm">
+            <h1 class="text-2xl font-black mb-1">방콕 생존 완성 🔥</h1>
+            <p class="text-[#8b95a1] text-sm">태국어 & 영어 학습 앱</p>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3" id="list-container">
+            <div class="flex items-center justify-center h-full">
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin text-4xl text-[#3182f6] mb-4"></i>
+                    <p class="text-gray-500">데이터를 불러오는 중...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 2: DETAIL -->
+    <div id="view-detail" class="hidden flex-col h-full bg-white">
+        <!-- Header -->
+        <div class="px-4 py-3 border-b border-[#f2f4f6] flex items-center justify-between sticky top-0 bg-white z-20">
+            <button onclick="goBack()" class="p-2 rounded-full hover:bg-gray-100" aria-label="뒤로가기"><i
+                    class="fas fa-arrow-left text-xl" aria-hidden="true"></i></button>
+            <span class="font-bold text-lg" id="header-title">DAY 1</span>
+            <div class="w-8"></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="px-4 py-3 bg-white z-10">
+            <div class="bg-[#f2f4f6] p-1 rounded-xl flex text-sm">
+                <button onclick="setTab('th')" id="btn-th" class="flex-1 py-3 rounded-lg tab-active"
+                    aria-label="태국어 탭">태국어 (<span id="count-th">0</span>)</button>
+                <button onclick="setTab('en')" id="btn-en" class="flex-1 py-3 rounded-lg tab-inactive"
+                    aria-label="영어 탭">영어 (<span id="count-en">0</span>)</button>
+                <button onclick="setTab('quiz')" id="btn-quiz" class="flex-1 py-3 rounded-lg tab-inactive"
+                    aria-label="퀴즈 탭">퀴즈 (TEST)</button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-10" id="content-area"></div>
+    </div>
+
+    <script>
+        // ============================================================
+        // 0. UTILITY FUNCTIONS
+        // ============================================================
+        // HTML 이스케이프 함수 (XSS 방지)
+        function escapeHtml(text) {
+            if (text == null) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================================
+        // 1. DATA LOADING (from data.json)
+        // ============================================================
+        let DB = {}; // 데이터베이스 객체 (동적으로 로드됨)
+
+        // data.json 파일 로드
+        async function loadData() {
+            try {
+                const response = await fetch('data.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                DB = data;
+
+                // 키를 숫자로 변환 (JSON은 키를 문자열로 저장)
+                const normalizedDB = {};
+                for (const [key, value] of Object.entries(DB)) {
+                    normalizedDB[parseInt(key)] = value;
+                }
+                DB = normalizedDB;
+
+                // 데이터 로드 완료 후 UI 업데이트
+                renderList();
+            } catch (error) {
+                console.error('데이터 로드 실패:', error);
+                showError('데이터를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
+            }
+        }
+
+        // 에러 메시지 표시
+        function showError(message) {
+            const container = document.getElementById('list-container');
+            container.innerHTML = `
+                <div class="bg-red-50 border border-red-200 p-6 rounded-2xl text-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-3"></i>
+                    <p class="text-red-700 font-bold mb-2">오류 발생</p>
+                    <p class="text-red-600 text-sm">${escapeHtml(message)}</p>
+                    <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                        새로고침
+                    </button>
+                </div>
+            `;
+        }
+
+        // ============================================================
+        // 2. LOGIC (Quiz Generator & UI)
+        // ============================================================
+        let currentDay = 1;
+        let currentTab = 'th';
+        let voices = [];
+        let quizAnswered = false; // 퀴즈 답변 상태 추적
+        let scrollPositions = {}; // 탭별 스크롤 위치 저장
+        let quizLangToggle = true; // true = 태국어, false = 영어 (번갈아가며)
+
+        window.onload = function () {
+            // 데이터 로드
+            loadData();
+
+            // Audio Init
+            const loadVoices = () => {
+                if (window.speechSynthesis) {
+                    voices = window.speechSynthesis.getVoices();
+                }
+            };
+            loadVoices();
+            if (window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+
+            // 브라우저 뒤로가기 버튼 처리
+            window.addEventListener('popstate', function (event) {
+                if (document.getElementById('view-detail').classList.contains('flex')) {
+                    goBack();
+                }
+            });
+        };
+
+        function renderList() {
+            const container = document.getElementById('list-container');
+            let html = '';
+            for (const [day, data] of Object.entries(DB)) {
+                html += `
+                <div onclick="openDay(${day})" class="bg-white p-5 rounded-2xl flex justify-between items-center card-press cursor-pointer border border-transparent hover:border-blue-100 shadow-sm" role="button" tabindex="0" aria-label="DAY ${day}: ${escapeHtml(data.topic)}">
+                    <div>
+                        <span class="text-[#3182f6] text-xs font-bold block mb-1">DAY ${day}</span>
+                        <h3 class="text-lg font-bold text-[#333]">${escapeHtml(data.topic)}</h3>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-300" aria-hidden="true"></i>
+                </div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function openDay(day) {
+            // 데이터 검증
+            if (!DB[day]) {
+                console.error(`Day ${day} 데이터가 없습니다.`);
+                return;
+            }
+
+            currentDay = day;
+            quizAnswered = false; // 퀴즈 상태 초기화
+            scrollPositions = {}; // 스크롤 위치 초기화
+            quizLangToggle = true; // 퀴즈 언어 토글 초기화 (태국어부터 시작)
+
+            document.getElementById('view-list').classList.add('hidden');
+            document.getElementById('view-detail').classList.remove('hidden');
+            document.getElementById('view-detail').classList.add('flex');
+
+            const topic = DB[day].topic.split('(')[0].trim();
+            document.getElementById('header-title').textContent = `DAY ${day}: ${topic}`;
+
+            // 탭 개수 업데이트
+            updateTabCounts();
+            setTab('th');
+
+            // 히스토리 관리 (뒤로가기 버튼 지원)
+            if (window.history && window.history.pushState) {
+                window.history.pushState({ view: 'detail', day: day }, '', `#day-${day}`);
+            }
+        }
+
+        function updateTabCounts() {
+            const data = DB[currentDay];
+            if (data) {
+                const thCount = data.th ? data.th.length : 0;
+                const enCount = data.en ? data.en.length : 0;
+                document.getElementById('count-th').textContent = thCount;
+                document.getElementById('count-en').textContent = enCount;
+            }
+        }
+
+        function goBack() {
+            document.getElementById('view-detail').classList.remove('flex');
+            document.getElementById('view-detail').classList.add('hidden');
+            document.getElementById('view-list').classList.remove('hidden');
+
+            // TTS 중지
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+
+            // 히스토리 관리
+            if (window.history && window.history.pushState) {
+                window.history.pushState(null, null, window.location.pathname);
+            }
+        }
+
+        function setTab(tab) {
+            // 데이터 검증
+            const data = DB[currentDay];
+            if (!data) {
+                console.error(`Day ${currentDay} 데이터가 없습니다.`);
+                return;
+            }
+
+            // 스크롤 위치 저장
+            const area = document.getElementById('content-area');
+            if (currentTab && scrollPositions[currentTab] !== undefined) {
+                scrollPositions[currentTab] = area.scrollTop;
+            }
+
+            currentTab = tab;
+            quizAnswered = false; // 퀴즈 상태 초기화
+
+            // Button Styles
+            ['th', 'en', 'quiz'].forEach(t => {
+                const btn = document.getElementById(`btn-${t}`);
+                if (btn) {
+                    if (t === tab) {
+                        btn.classList.add('tab-active');
+                        btn.classList.remove('tab-inactive');
+                        btn.setAttribute('aria-selected', 'true');
+                    } else {
+                        btn.classList.add('tab-inactive');
+                        btn.classList.remove('tab-active');
+                        btn.setAttribute('aria-selected', 'false');
+                    }
+                }
+            });
+
+            let html = '';
+
+            if (tab === 'th' && data.th) {
+                data.th.forEach((item, i) => {
+                    if (!item || !item.t) return; // 빈 데이터 스킵
+                    const escapedT = escapeHtml(item.t);
+                    const escapedK = escapeHtml(item.k || '');
+                    const escapedM = escapeHtml(item.m || '');
+                    html += `
+                    <div onclick="speak('${escapedT.replace(/'/g, "\\'")}', 'th')" class="bg-white p-5 rounded-2xl border border-gray-100 card-press cursor-pointer relative" role="button" tabindex="0" aria-label="태국어 표현 ${i + 1}">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">#${i + 1}</span>
+                            <i class="fas fa-volume-high text-gray-300" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-[#333] mb-1 thai-font leading-relaxed">${escapedT}</h3>
+                        <p class="text-sm text-[#ef4444] font-bold mb-1">${escapedK}</p>
+                        <p class="text-sm text-gray-500">${escapedM}</p>
+                    </div>`;
+                });
+            } else if (tab === 'en' && data.en) {
+                data.en.forEach((item, i) => {
+                    if (!item || !item.t) return; // 빈 데이터 스킵
+                    const escapedT = escapeHtml(item.t);
+                    const escapedM = escapeHtml(item.m || '');
+                    html += `
+                    <div onclick="speak('${escapedT.replace(/'/g, "\\'")}', 'en')" class="bg-white p-5 rounded-2xl border border-gray-100 card-press cursor-pointer relative" role="button" tabindex="0" aria-label="영어 표현 ${i + 1}">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">#${i + 1}</span>
+                            <i class="fas fa-volume-high text-gray-300" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-[#333] mb-2 italic serif">"${escapedT}"</h3>
+                        <p class="text-sm text-gray-500 font-medium">${escapedM}</p>
+                    </div>`;
+                });
+            } else if (tab === 'quiz') {
+                html = renderQuiz(data);
+            }
+
+            area.innerHTML = html;
+
+            // 저장된 스크롤 위치 복원
+            if (scrollPositions[tab] !== undefined) {
+                setTimeout(() => {
+                    area.scrollTop = scrollPositions[tab];
+                }, 0);
+            } else {
+                area.scrollTop = 0;
+            }
+        }
+
+        // --- QUIZ LOGIC (AUTO GENERATOR) ---
+        function renderQuiz(data) {
+            // 데이터 검증
+            if (!data) {
+                return `
+                <div class="flex flex-col h-full justify-center items-center">
+                    <i class="fas fa-exclamation-triangle text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-500">퀴즈 데이터가 준비되지 않았습니다.</p>
+                </div>`;
+            }
+
+            // 태국어/영어 번갈아가며 선택
+            const isThai = quizLangToggle;
+            quizLangToggle = !quizLangToggle; // 다음 문제를 위해 토글
+
+            const sourceData = isThai ? data.th : data.en;
+            const langName = isThai ? '태국어' : '영어';
+
+            if (!sourceData || sourceData.length === 0) {
+                return `
+                <div class="flex flex-col h-full justify-center items-center">
+                    <i class="fas fa-exclamation-triangle text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-500">${langName} 퀴즈 데이터가 준비되지 않았습니다.</p>
+                </div>`;
+            }
+
+            // 유효한 데이터만 필터링
+            const validItems = sourceData.filter(item => {
+                if (!item || !item.m) return false;
+                if (isThai) {
+                    return item.t && item.k && item.m && item.t !== "(데이터 준비중)";
+                } else {
+                    return item.t && item.m && item.t !== "(Coming Soon)";
+                }
+            });
+
+            if (validItems.length === 0) {
+                return `
+                <div class="flex flex-col h-full justify-center items-center">
+                    <i class="fas fa-exclamation-triangle text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-500">${langName} 퀴즈 데이터가 준비되지 않았습니다.</p>
+                </div>`;
+            }
+
+            // 랜덤 문제 선택
+            const idx = Math.floor(Math.random() * validItems.length);
+            const qItem = validItems[idx];
+
+            // 퀴즈 타입 랜덤 선택 (2가지 타입)
+            const quizType = Math.random() < 0.5 ? 1 : 2;
+            let questionText = '';
+            let correctAnswer = '';
+            let options = [];
+            let correctIndex = 0;
+
+            if (isThai) {
+                // 태국어 퀴즈
+                if (quizType === 1) {
+                    // Type 1: 한국어 의미 → 태국어 한글 발음(k) 선택
+                    questionText = `"${escapeHtml(qItem.m)}"의 ${langName} 한글 발음은?`;
+                    correctAnswer = qItem.k;
+
+                    // 오답 생성
+                    const wrongIndices = [];
+                    while (wrongIndices.length < 3) {
+                        const wrongIdx = Math.floor(Math.random() * validItems.length);
+                        if (wrongIdx !== idx && !wrongIndices.includes(wrongIdx) && validItems[wrongIdx].k) {
+                            wrongIndices.push(wrongIdx);
+                        }
+                    }
+                    options = [qItem.k, validItems[wrongIndices[0]].k, validItems[wrongIndices[1]].k, validItems[wrongIndices[2]].k];
+                } else {
+                    // Type 2: 태국어 한글 발음(k) → 한국어 의미 선택
+                    questionText = `"${escapeHtml(qItem.k)}"의 의미는?`;
+                    correctAnswer = qItem.m;
+
+                    // 오답 생성
+                    const wrongIndices = [];
+                    while (wrongIndices.length < 3) {
+                        const wrongIdx = Math.floor(Math.random() * validItems.length);
+                        if (wrongIdx !== idx && !wrongIndices.includes(wrongIdx)) {
+                            wrongIndices.push(wrongIdx);
+                        }
+                    }
+                    options = [qItem.m, validItems[wrongIndices[0]].m, validItems[wrongIndices[1]].m, validItems[wrongIndices[2]].m];
+                }
+            } else {
+                // 영어 퀴즈
+                if (quizType === 1) {
+                    // Type 1: 한국어 의미 → 영어 선택
+                    questionText = `"${escapeHtml(qItem.m)}"의 ${langName} 표현은?`;
+                    correctAnswer = qItem.t;
+
+                    // 오답 생성
+                    const wrongIndices = [];
+                    while (wrongIndices.length < 3) {
+                        const wrongIdx = Math.floor(Math.random() * validItems.length);
+                        if (wrongIdx !== idx && !wrongIndices.includes(wrongIdx)) {
+                            wrongIndices.push(wrongIdx);
+                        }
+                    }
+                    options = [qItem.t, validItems[wrongIndices[0]].t, validItems[wrongIndices[1]].t, validItems[wrongIndices[2]].t];
+                } else {
+                    // Type 2: 영어 → 한국어 의미 선택
+                    questionText = `"${escapeHtml(qItem.t)}"의 의미는?`;
+                    correctAnswer = qItem.m;
+
+                    // 오답 생성
+                    const wrongIndices = [];
+                    while (wrongIndices.length < 3) {
+                        const wrongIdx = Math.floor(Math.random() * validItems.length);
+                        if (wrongIdx !== idx && !wrongIndices.includes(wrongIdx)) {
+                            wrongIndices.push(wrongIdx);
+                        }
+                    }
+                    options = [qItem.m, validItems[wrongIndices[0]].m, validItems[wrongIndices[1]].m, validItems[wrongIndices[2]].m];
+                }
+            }
+
+            // 선택지 섞기
+            options.sort(() => Math.random() - 0.5);
+            correctIndex = options.indexOf(correctAnswer);
+            const escapedOpts = options.map(opt => escapeHtml(opt));
+
+            return `
+            <div class="flex flex-col h-full justify-center">
+                <div class="text-center mb-8">
+                    <i class="fas fa-brain text-4xl text-yellow-400 mb-4" aria-hidden="true"></i>
+                    <h2 class="text-xl font-bold mb-2">${langName} 퀴즈</h2>
+                    <p class="text-gray-400 text-sm">랜덤으로 문제가 생성됩니다</p>
+                </div>
+
+                <div class="bg-white border border-blue-100 p-8 rounded-2xl text-center shadow-sm mb-6">
+                    <p class="text-sm text-gray-500 mb-2">${questionText}</p>
+                    ${isThai && quizType === 2 ? `<h3 class="text-2xl font-bold text-[#3182f6] mb-2">${escapeHtml(qItem.k)}</h3>` : ''}
+                    ${!isThai && quizType === 2 ? `<h3 class="text-xl font-bold text-[#3182f6] mb-2 italic">"${escapeHtml(qItem.t)}"</h3>` : ''}
+                </div>
+
+                <div class="space-y-3" id="quiz-options">
+                    ${escapedOpts.map((opt, i) => `
+                        <button onclick="checkAns(this, ${i === correctIndex}, ${correctIndex})"
+                                class="quiz-option w-full p-4 bg-white border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-colors text-left"
+                                role="button"
+                                aria-label="선택지 ${i + 1}: ${opt}">
+                            ${opt}
+                        </button>
+                    `).join('')}
+                </div>
+                <div class="mt-8 text-center">
+                     <button onclick="setTab('quiz')" class="text-sm text-gray-400 underline hover:text-gray-600" aria-label="다음 문제">다음 문제 (새로고침)</button>
+                </div>
+            </div>`;
+        }
+
+        function checkAns(btn, isCorrect, correctIndex) {
+            // 이미 정답을 맞춘 경우 무시
+            if (quizAnswered) {
+                return;
+            }
+
+            const options = document.querySelectorAll('.quiz-option');
+
+            if (isCorrect) {
+                // 정답 처리
+                quizAnswered = true;
+
+                // 모든 버튼 비활성화
+                options.forEach(opt => {
+                    opt.style.pointerEvents = 'none';
+                    opt.disabled = true;
+                });
+
+                btn.style.backgroundColor = '#dbeafe'; // Blue-100
+                btn.style.borderColor = '#3b82f6';
+                btn.style.color = '#1d4ed8';
+                btn.innerHTML += ' <i class="fas fa-check float-right mt-1" aria-hidden="true"></i>';
+                btn.setAttribute('aria-label', btn.getAttribute('aria-label') + ' - 정답');
+
+                // 기존 메시지 제거
+                const existingMessage = document.querySelector('.quiz-message');
+                if (existingMessage) {
+                    existingMessage.remove();
+                }
+
+                // 정답 메시지 표시
+                const quizContainer = document.querySelector('.flex.flex-col.h-full.justify-center');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'quiz-message text-center mt-4';
+                messageDiv.innerHTML = '<p class="text-green-600 font-bold text-lg animate-pulse">✓ 정답입니다!</p>';
+                quizContainer.querySelector('.space-y-3').after(messageDiv);
+
+                // 1.5초 후 자동으로 다음 문제로 이동
+                setTimeout(() => {
+                    setTab('quiz');
+                }, 1500);
+            } else {
+                // 오답 처리 - 오답 버튼만 비활성화하고 다른 선택지는 계속 선택 가능
+                btn.style.pointerEvents = 'none';
+                btn.disabled = true;
+                btn.style.backgroundColor = '#fee2e2'; // Red-100
+                btn.style.borderColor = '#ef4444';
+                btn.style.color = '#b91c1c';
+
+                // 이미 X 아이콘이 있는지 확인
+                if (!btn.innerHTML.includes('fa-times')) {
+                    btn.innerHTML += ' <i class="fas fa-times float-right mt-1" aria-hidden="true"></i>';
+                }
+                btn.setAttribute('aria-label', btn.getAttribute('aria-label') + ' - 오답');
+
+                // 기존 메시지 제거
+                const existingMessage = document.querySelector('.quiz-message');
+                if (existingMessage) {
+                    existingMessage.remove();
+                }
+
+                // 오답 메시지 표시
+                const quizContainer = document.querySelector('.flex.flex-col.h-full.justify-center');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'quiz-message text-center mt-4';
+                messageDiv.innerHTML = '<p class="text-red-600 font-bold text-lg">✗ 틀렸습니다. 다시 선택해보세요!</p>';
+                quizContainer.querySelector('.space-y-3').after(messageDiv);
+            }
+        }
+
+        // --- TTS ENGINE ---
+        function speak(text, lang) {
+            // TTS 지원 여부 확인
+            if (!window.speechSynthesis) {
+                console.warn('이 브라우저는 TTS를 지원하지 않습니다.');
+                return;
+            }
+
+            try {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.rate = 0.85;
+                u.volume = 1.0;
+                u.pitch = 1.0;
+
+                if (lang === 'th') {
+                    u.lang = 'th-TH';
+                    const v = voices.find(v => v.lang === 'th-TH' || v.lang.startsWith('th'));
+                    if (v) u.voice = v;
+                } else {
+                    u.lang = 'en-US';
+                    const v = voices.find(v => v.lang === 'en-US' || v.lang.startsWith('en'));
+                    if (v) u.voice = v;
+                }
+
+                // 에러 핸들링
+                u.onerror = function (event) {
+                    console.error('TTS 에러:', event.error);
+                };
+
+                window.speechSynthesis.speak(u);
+            } catch (error) {
+                console.error('TTS 실행 중 에러:', error);
+            }
+        }
+    </script>
+</body>
+
+</html>
