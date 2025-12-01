@@ -656,16 +656,8 @@
             // 데이터 로드
             loadData();
 
-            // Audio Init
-            const loadVoices = () => {
-                if (window.speechSynthesis) {
-                    voices = window.speechSynthesis.getVoices();
-                }
-            };
-            loadVoices();
-            if (window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) {
-                speechSynthesis.onvoiceschanged = loadVoices;
-            }
+            // TTS 초기화 (카카오톡 인앱 브라우저 대응)
+            initTTS();
 
             // 브라우저 뒤로가기 버튼 처리
             window.addEventListener('popstate', function (event) {
@@ -682,6 +674,22 @@
 
             // 키보드 네비게이션 초기화
             initKeyboardNavigation();
+
+            // 페이지 포커스 시 TTS 재초기화 (카카오톡 인앱 브라우저 대응)
+            window.addEventListener('focus', function() {
+                if (window.speechSynthesis && !isTTSReady) {
+                    setTimeout(initTTS, 100);
+                }
+            });
+
+            // 사용자 상호작용 시 TTS 활성화 (카카오톡 인앱 브라우저 대응)
+            const activateTTS = () => {
+                if (!isTTSReady && window.speechSynthesis) {
+                    initTTS();
+                }
+            };
+            document.addEventListener('click', activateTTS, { once: true });
+            document.addEventListener('touchstart', activateTTS, { once: true });
         };
 
         // 키보드 네비게이션 초기화
@@ -1613,38 +1621,142 @@
         }
 
         // --- TTS ENGINE ---
-        function speak(text, lang) {
-            // TTS 지원 여부 확인
+        let isTTSReady = false;
+        let ttsRetryCount = 0;
+        const MAX_TTS_RETRY = 3;
+
+        // TTS 초기화 (카카오톡 인앱 브라우저 대응)
+        function initTTS() {
             if (!window.speechSynthesis) {
                 console.warn('이 브라우저는 TTS를 지원하지 않습니다.');
                 return;
             }
 
+            // voices 로드 대기
+            const checkVoices = () => {
+                if (window.speechSynthesis.getVoices().length > 0) {
+                    voices = window.speechSynthesis.getVoices();
+                    isTTSReady = true;
+                    console.log('TTS 초기화 완료:', voices.length, '개 음성 로드됨');
+                } else {
+                    // voices가 아직 로드되지 않았으면 재시도
+                    setTimeout(checkVoices, 100);
+                }
+            };
+
+            // 즉시 확인
+            checkVoices();
+
+            // voiceschanged 이벤트 리스너
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = () => {
+                    voices = window.speechSynthesis.getVoices();
+                    isTTSReady = true;
+                    console.log('TTS 음성 목록 업데이트:', voices.length, '개');
+                };
+            }
+
+            // 추가 초기화 시도 (카카오톡 인앱 브라우저 대응)
+            setTimeout(() => {
+                if (!isTTSReady && window.speechSynthesis) {
+                    voices = window.speechSynthesis.getVoices();
+                    if (voices.length > 0) {
+                        isTTSReady = true;
+                        console.log('TTS 지연 초기화 완료');
+                    }
+                }
+            }, 500);
+        }
+
+        function speak(text, lang) {
+            // TTS 지원 여부 확인
+            if (!window.speechSynthesis) {
+                console.warn('이 브라우저는 TTS를 지원하지 않습니다.');
+                showWarning('이 브라우저에서는 음성 재생을 지원하지 않습니다.');
+                return;
+            }
+
+            // 빈 텍스트 체크
+            if (!text || text.trim().length === 0) {
+                return;
+            }
+
             try {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(text);
-            u.rate = 0.85;
+                // 기존 재생 중지
+                window.speechSynthesis.cancel();
+
+                // voices가 준비되지 않았으면 재시도
+                if (!isTTSReady || voices.length === 0) {
+                    if (ttsRetryCount < MAX_TTS_RETRY) {
+                        ttsRetryCount++;
+                        console.log(`TTS 재시도 ${ttsRetryCount}/${MAX_TTS_RETRY}`);
+                        setTimeout(() => {
+                            initTTS();
+                            setTimeout(() => speak(text, lang), 200);
+                        }, 300);
+                        return;
+                    } else {
+                        console.warn('TTS 초기화 실패, 기본 설정으로 재생 시도');
+                        voices = window.speechSynthesis.getVoices();
+                    }
+                }
+
+                ttsRetryCount = 0; // 성공 시 리셋
+
+                const u = new SpeechSynthesisUtterance(text);
+                u.rate = 0.85;
                 u.volume = 1.0;
                 u.pitch = 1.0;
 
-            if (lang === 'th') {
-                u.lang = 'th-TH';
+                // 언어 설정
+                if (lang === 'th') {
+                    u.lang = 'th-TH';
                     const v = voices.find(v => v.lang === 'th-TH' || v.lang.startsWith('th'));
-                if (v) u.voice = v;
-            } else {
-                u.lang = 'en-US';
+                    if (v) {
+                        u.voice = v;
+                    }
+                } else {
+                    u.lang = 'en-US';
                     const v = voices.find(v => v.lang === 'en-US' || v.lang.startsWith('en'));
-                if (v) u.voice = v;
+                    if (v) {
+                        u.voice = v;
+                    }
                 }
 
                 // 에러 핸들링
                 u.onerror = function (event) {
                     console.error('TTS 에러:', event.error);
+                    if (event.error === 'not-allowed') {
+                        showWarning('음성 재생 권한이 필요합니다. 브라우저 설정을 확인해주세요.');
+                    } else if (event.error === 'synthesis-failed') {
+                        showWarning('음성 합성에 실패했습니다. 다시 시도해주세요.');
+                    } else {
+                        showWarning('음성 재생 중 오류가 발생했습니다.');
+                    }
                 };
 
+                // 재생 시작 이벤트
+                u.onstart = function() {
+                    console.log('TTS 재생 시작:', text.substring(0, 20));
+                };
+
+                // 재생 완료 이벤트
+                u.onend = function() {
+                    console.log('TTS 재생 완료');
+                };
+
+                // 재생 중단 이벤트
+                u.onpause = function() {
+                    console.log('TTS 재생 일시정지');
+                };
+
+                // 카카오톡 인앱 브라우저 대응: 사용자 상호작용 컨텍스트에서 실행
+                // 이미 클릭 이벤트 내에서 호출되므로 문제없음
                 window.speechSynthesis.speak(u);
+
             } catch (error) {
                 console.error('TTS 실행 중 에러:', error);
+                showWarning('음성 재생 중 오류가 발생했습니다: ' + error.message);
             }
         }
     </script>
