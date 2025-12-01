@@ -1,0 +1,217 @@
+{
+  "days": {
+    "1": {
+      "id": 1,
+      "topic": "생존 & 요청 (Survival & Request)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-1.json"
+    },
+    "2": {
+      "id": 2,
+      "topic": "돈과 금융 (Money & Finance)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-2.json"
+    },
+    "3": {
+      "id": 3,
+      "topic": "이동과 물류 (Logistics)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-3.json"
+    },
+    "4": {
+      "id": 4,
+      "topic": "일정 관리 (Scheduling)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-4.json"
+    },
+    "5": {
+      "id": 5,
+      "topic": "위치와 시설 (Facilities)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-5.json"
+    },
+    "6": {
+      "id": 6,
+      "topic": "네트워킹 (Networking)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-6.json"
+    },
+    "7": {
+      "id": 7,
+      "topic": "접대와 식사 (Hospitality)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-7.json"
+    },
+    "8": {
+      "id": 8,
+      "topic": "업무 피드백 (Feedback)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-8.json"
+    },
+    "9": {
+      "id": 9,
+      "topic": "조직과 인력 (Organization)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-9.json"
+    },
+    "10": {
+      "id": 10,
+      "topic": "업무 루틴 (Operations)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-10.json"
+    },
+    "11": {
+      "id": 11,
+      "topic": "과거와 경험 (Past & History)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-11.json"
+    },
+    "12": {
+      "id": 12,
+      "topic": "미래와 계획 (Future & Strategy)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-12.json"
+    },
+    "13": {
+      "id": 13,
+      "topic": "현재와 진행 (Status & Progress)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-13.json"
+    },
+    "14": {
+      "id": 14,
+      "topic": "능력과 가능성 (Ability & Feasibility)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-14.json"
+    },
+    "15": {
+      "id": 15,
+      "topic": "비교와 분석 (Comparison & Analysis)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-15.json"
+    },
+    "16": {
+      "id": 16,
+      "topic": "인과관계와 이유 (Cause & Effect)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-16.json"
+    },
+    "17": {
+      "id": 17,
+      "topic": "접속사와 연결어 (Connectors)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-17.json"
+    },
+    "18": {
+      "id": 18,
+      "topic": "건강과 병원 (Health & Medical)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-18.json"
+    },
+    "19": {
+      "id": 19,
+      "topic": "출장과 여행 (Travel & Business Trip)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-19.json"
+    },
+    "20": {
+      "id": 20,
+      "topic": "위기 관리 (Crisis & Problems)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-20.json"
+    },
+    "21": {
+      "id": 21,
+      "topic": "비즈니스 기본 (Business Basics)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-21.json"
+    },
+    "22": {
+      "id": 22,
+      "topic": "비즈니스 이메일 (Email)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-22.json"
+    },
+    "23": {
+      "id": 23,
+      "topic": "회의와 토론 (Meeting)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-23.json"
+    },
+    "24": {
+      "id": 24,
+      "topic": "협상과 계약 (Negotiation)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-24.json"
+    },
+    "25": {
+      "id": 25,
+      "topic": "전화와 통신 (Telecommunication)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-25.json"
+    },
+    "26": {
+      "id": 26,
+      "topic": "문제 해결 (Problem Solving)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-26.json"
+    },
+    "27": {
+      "id": 27,
+      "topic": "사과와 변명 (Apology)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-27.json"
+    },
+    "28": {
+      "id": 28,
+      "topic": "의견과 주장 (Opinion)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-28.json"
+    },
+    "29": {
+      "id": 29,
+      "topic": "태국 문화 (Thai Culture)",
+      "thCount": 30,
+      "enCount": 30,
+      "file": "day-29.json"
+    },
+    "30": {
+      "id": 30,
+      "topic": "마스터 졸업 (Mastery & Future)",
+      "thCount": 30,
+      "enCount": 28,
+      "file": "day-30.json"
+    }
+  },
+  "mapping": {},
+  "version": "2.0",
+  "totalDays": 30
+}

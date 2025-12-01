@@ -259,9 +259,11 @@
         }
 
         // ============================================================
-        // 1. DATA LOADING (from data.json)
+        // 1. DATA LOADING (from separated JSON files)
         // ============================================================
         let DB = {}; // 데이터베이스 객체 (동적으로 로드됨)
+        let daysMetadata = {}; // Day 메타데이터 (index.json에서 로드)
+        let dayFileMapping = {}; // Day 번호 -> 해시 파일명 매핑
 
         // Storage Manager
         const StorageManager = {
@@ -309,6 +311,66 @@
                 localStorage.removeItem(this.CACHE_KEY);
                 localStorage.removeItem(this.ETAG_KEY);
                 localStorage.removeItem(this.TIMESTAMP_KEY);
+                localStorage.removeItem('thaieng_metadata');
+                localStorage.removeItem('thaieng_metadata_etag');
+                // 모든 Day 캐시 삭제
+                for (let i = 1; i <= 30; i++) {
+                    localStorage.removeItem(`thaieng_day_${i}`);
+                }
+            },
+
+            // 메타데이터 캐싱
+            getCachedMetadata() {
+                try {
+                    const cached = localStorage.getItem('thaieng_metadata');
+                    return cached ? JSON.parse(cached) : null;
+                } catch (e) {
+                    return null;
+                }
+            },
+
+            setCachedMetadata(metadata, etag) {
+                try {
+                    localStorage.setItem('thaieng_metadata', JSON.stringify(metadata));
+                    if (etag) {
+                        localStorage.setItem('thaieng_metadata_etag', etag);
+                    }
+                } catch (e) {
+                    console.warn('메타데이터 캐시 저장 실패:', e);
+                }
+            },
+
+            getMetadataEtag() {
+                return localStorage.getItem('thaieng_metadata_etag') || null;
+            },
+
+            // Day별 캐싱
+            setDayCache(day, data) {
+                try {
+                    localStorage.setItem(`thaieng_day_${day}`, JSON.stringify(data));
+                } catch (e) {
+                    console.warn(`Day ${day} 캐시 저장 실패:`, e);
+                }
+            },
+
+            getDayCache(day) {
+                try {
+                    const cached = localStorage.getItem(`thaieng_day_${day}`);
+                    return cached ? JSON.parse(cached) : null;
+                } catch (e) {
+                    return null;
+                }
+            },
+
+            getAllCachedDays() {
+                const cachedDays = {};
+                for (let i = 1; i <= 30; i++) {
+                    const cached = this.getDayCache(i);
+                    if (cached) {
+                        cachedDays[i] = cached;
+                    }
+                }
+                return cachedDays;
             },
 
             // 즐겨찾기 관리
@@ -356,66 +418,122 @@
             }
         };
 
-        // data.json 파일 로드 (캐싱 지원)
-        async function loadData() {
-            const container = document.getElementById('list-container');
-
-            // 캐시된 데이터가 있으면 먼저 표시
-            const cachedData = StorageManager.getCachedData();
-            if (cachedData) {
-                DB = cachedData;
-                normalizeDB();
-                renderList();
-                // 백그라운드에서 업데이트 확인
-                updateDataInBackground();
-                return;
-            }
-
-            // 캐시가 없으면 서버에서 로드
+        // index.json (메타데이터) 로드
+        async function loadMetadata() {
             try {
-                updateLoadingProgress(0);
-                const etag = StorageManager.getEtag();
-                const headers = {};
-                if (etag) {
-                    headers['If-None-Match'] = etag;
-                }
-
-                const response = await fetch('data.json', { headers });
-                updateLoadingProgress(50);
-
-                if (response.status === 304) {
-                    // Not Modified - 캐시 사용
-                    const cached = StorageManager.getCachedData();
-                    if (cached) {
-                        DB = cached;
-                        normalizeDB();
-                        renderList();
-                        return;
-                    }
-                }
-
+                const response = await fetch('data/index.json');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                const metadata = await response.json();
+                daysMetadata = metadata.days || {};
+                dayFileMapping = metadata.mapping || {};
+                return metadata;
+            } catch (error) {
+                console.error('메타데이터 로드 실패:', error);
+                throw error;
+            }
+        }
 
-                const data = await response.json();
-                updateLoadingProgress(80);
+        // 특정 Day 데이터 로드 (Lazy Loading)
+        async function loadDayData(day) {
+            // 이미 로드된 경우 캐시에서 반환
+            if (DB[day]) {
+                return DB[day];
+            }
 
-                DB = data;
-                normalizeDB();
+            // 메타데이터에서 파일명 찾기
+            const dayMeta = daysMetadata[day];
+            if (!dayMeta || !dayMeta.file) {
+                throw new Error(`Day ${day} 메타데이터를 찾을 수 없습니다.`);
+            }
 
-                // ETag 저장
-                const newEtag = response.headers.get('ETag') || response.headers.get('etag');
-                StorageManager.setCachedData(data, newEtag);
+            try {
+                const response = await fetch(`data/${dayMeta.file}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const dayData = await response.json();
+
+                // DB에 저장
+                DB[day] = dayData;
+
+                // 캐시에 저장
+                StorageManager.setDayCache(day, dayData);
+
+                return dayData;
+            } catch (error) {
+                console.error(`Day ${day} 데이터 로드 실패:`, error);
+                throw error;
+            }
+        }
+
+        // 모든 Day 데이터 로드 (초기 로딩)
+        async function loadAllDays() {
+            const dayNumbers = Object.keys(daysMetadata).map(Number).sort((a, b) => a - b);
+            const totalDays = dayNumbers.length;
+            let loaded = 0;
+
+            // 병렬 로딩 (최대 5개씩)
+            const batchSize = 5;
+            for (let i = 0; i < dayNumbers.length; i += batchSize) {
+                const batch = dayNumbers.slice(i, i + batchSize);
+                await Promise.all(
+                    batch.map(async (day) => {
+                        try {
+                            await loadDayData(day);
+                            loaded++;
+                            updateLoadingProgress(Math.round((loaded / totalDays) * 100));
+                        } catch (error) {
+                            console.error(`Day ${day} 로드 실패:`, error);
+                        }
+                    })
+                );
+            }
+        }
+
+        // 메인 데이터 로드 함수
+        async function loadData() {
+            const container = document.getElementById('list-container');
+
+            // 캐시된 메타데이터 확인
+            const cachedMetadata = StorageManager.getCachedMetadata();
+            if (cachedMetadata) {
+                daysMetadata = cachedMetadata.days || {};
+                dayFileMapping = cachedMetadata.mapping || {};
+                // 캐시된 Day 데이터 로드
+                const cachedDays = StorageManager.getAllCachedDays();
+                if (Object.keys(cachedDays).length > 0) {
+                    DB = cachedDays;
+                    normalizeDB();
+                    renderList();
+                    // 백그라운드에서 업데이트 확인
+                    updateDataInBackground();
+                    return;
+                }
+            }
+
+            // 메타데이터 로드
+            try {
+                updateLoadingProgress(0);
+                const metadata = await loadMetadata();
+                updateLoadingProgress(10);
+
+                // 메타데이터 캐시
+                StorageManager.setCachedMetadata(metadata);
+
+                // 모든 Day 데이터 로드
+                await loadAllDays();
 
                 updateLoadingProgress(100);
+                normalizeDB();
                 renderList();
             } catch (error) {
                 console.error('데이터 로드 실패:', error);
                 // 캐시된 데이터가 있으면 사용
-                const cached = StorageManager.getCachedData();
-                if (cached) {
-                    DB = cached;
+                const cachedDays = StorageManager.getAllCachedDays();
+                if (Object.keys(cachedDays).length > 0) {
+                    DB = cachedDays;
                     normalizeDB();
                     renderList();
                     showWarning('오프라인 모드: 캐시된 데이터를 사용합니다.');
@@ -428,13 +546,12 @@
         // 백그라운드에서 데이터 업데이트 확인
         async function updateDataInBackground() {
             try {
-                const etag = StorageManager.getEtag();
-                const headers = {};
-                if (etag) {
-                    headers['If-None-Match'] = etag;
-                }
-
-                const response = await fetch('data.json', { headers });
+                // 메타데이터만 확인 (변경 시 전체 재로드)
+                const response = await fetch('data/index.json', {
+                    headers: {
+                        'If-None-Match': StorageManager.getMetadataEtag() || ''
+                    }
+                });
 
                 if (response.status === 304) {
                     // 데이터 변경 없음
@@ -442,12 +559,12 @@
                 }
 
                 if (response.ok) {
-                    const data = await response.json();
-                    const newEtag = response.headers.get('ETag') || response.headers.get('etag');
-                    StorageManager.setCachedData(data, newEtag);
-
-                    // 데이터 업데이트
-                    DB = data;
+                    const metadata = await response.json();
+                    StorageManager.setCachedMetadata(metadata);
+                    daysMetadata = metadata.days || {};
+                    dayFileMapping = metadata.mapping || {};
+                    // 변경된 Day만 다시 로드
+                    await loadAllDays();
                     normalizeDB();
                     renderList();
                 }
@@ -717,7 +834,7 @@
         }
 
         // 검색 수행
-        function performSearch(query) {
+        async function performSearch(query) {
             if (!query || query.length === 0) {
                 renderList();
                 return;
@@ -727,8 +844,22 @@
             const lowerQuery = query.toLowerCase();
             const results = [];
 
-            // 모든 Day와 단어 검색
-            for (const [day, data] of Object.entries(DB)) {
+            // 모든 Day와 단어 검색 (필요한 Day만 로드)
+            const dayNumbers = Object.keys(daysMetadata).map(Number).sort((a, b) => a - b);
+
+            for (const day of dayNumbers) {
+                // Day 데이터가 없으면 로드
+                if (!DB[day]) {
+                    try {
+                        await loadDayData(day);
+                    } catch (error) {
+                        console.error(`Day ${day} 로드 실패:`, error);
+                        continue;
+                    }
+                }
+
+                const data = DB[day];
+                if (!data) continue;
                 const dayResults = {
                     day: parseInt(day),
                     topic: data.topic,
@@ -871,12 +1002,19 @@
             const container = document.getElementById('list-container');
             let html = '';
             let delay = 0;
-            for (const [day, data] of Object.entries(DB)) {
+
+            // 메타데이터를 기반으로 리스트 렌더링
+            const dayNumbers = Object.keys(daysMetadata).map(Number).sort((a, b) => a - b);
+
+            for (const day of dayNumbers) {
+                const dayMeta = daysMetadata[day];
+                if (!dayMeta) continue;
+
                 html += `
-                <div onclick="openDay(${day})" class="bg-white p-5 rounded-2xl flex justify-between items-center card-press cursor-pointer border border-transparent hover:border-blue-100 shadow-sm card-enter" role="button" tabindex="0" aria-label="DAY ${day}: ${escapeHtml(data.topic)}" style="animation-delay: ${delay * 0.05}s;">
+                <div onclick="openDay(${day})" class="bg-white p-5 rounded-2xl flex justify-between items-center card-press cursor-pointer border border-transparent hover:border-blue-100 shadow-sm card-enter" role="button" tabindex="0" aria-label="DAY ${day}: ${escapeHtml(dayMeta.topic)}" style="animation-delay: ${delay * 0.05}s;">
                     <div>
                         <span class="text-[#3182f6] text-xs font-bold block mb-1">DAY ${day}</span>
-                        <h3 class="text-lg font-bold text-[#333]">${escapeHtml(data.topic)}</h3>
+                        <h3 class="text-lg font-bold text-[#333]">${escapeHtml(dayMeta.topic)}</h3>
                     </div>
                     <i class="fas fa-chevron-right text-gray-300" aria-hidden="true"></i>
                 </div>`;
@@ -885,7 +1023,20 @@
             container.innerHTML = html;
         }
 
-        function openDay(day) {
+        async function openDay(day) {
+            // 데이터가 없으면 로드
+            if (!DB[day]) {
+                try {
+                    updateLoadingProgress(0);
+                    await loadDayData(day);
+                    updateLoadingProgress(100);
+                } catch (error) {
+                    console.error(`Day ${day} 로드 실패:`, error);
+                    showError(`Day ${day} 데이터를 불러오는데 실패했습니다.`);
+                    return;
+                }
+            }
+
             // 데이터 검증
             if (!DB[day]) {
                 console.error(`Day ${day} 데이터가 없습니다.`);
@@ -954,7 +1105,7 @@
         }
 
         // 즐겨찾기 렌더링
-        function renderFavorites() {
+        async function renderFavorites() {
             const favorites = StorageManager.getFavorites();
 
             if (favorites.length === 0) {
@@ -969,7 +1120,26 @@
             let html = '';
             const favoriteItems = [];
 
-            // 모든 즐겨찾기 항목 수집
+            // 모든 즐겨찾기 항목 수집 (필요한 Day 데이터 로드)
+            const dayPromises = [];
+            const daySet = new Set();
+
+            favorites.forEach(key => {
+                const [day, lang, index] = key.split('_');
+                const dayNum = parseInt(day);
+                daySet.add(dayNum);
+            });
+
+            // 필요한 Day 데이터 로드
+            for (const dayNum of daySet) {
+                if (!DB[dayNum]) {
+                    dayPromises.push(loadDayData(dayNum));
+                }
+            }
+
+            await Promise.all(dayPromises);
+
+            // 즐겨찾기 항목 수집
             favorites.forEach(key => {
                 const [day, lang, index] = key.split('_');
                 const dayNum = parseInt(day);
@@ -1002,7 +1172,7 @@
 
             // 렌더링
             Object.keys(groupedByDay).sort((a, b) => parseInt(a) - parseInt(b)).forEach(day => {
-                const dayData = DB[parseInt(day)];
+                const dayMeta = daysMetadata[parseInt(day)];
                 const items = groupedByDay[day];
 
                 html += `
@@ -1011,7 +1181,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <span class="text-[#3182f6] text-xs font-bold">DAY ${day}</span>
-                                <h3 class="text-base font-bold text-[#333] mt-1">${escapeHtml(dayData.topic)}</h3>
+                                <h3 class="text-base font-bold text-[#333] mt-1">${escapeHtml(dayMeta ? dayMeta.topic : '')}</h3>
                             </div>
                             <button onclick="openDay(${day})" class="text-[#3182f6] text-sm font-bold hover:underline" aria-label="DAY ${day} 보기">
                                 보기 <i class="fas fa-chevron-right ml-1"></i>
@@ -1102,8 +1272,17 @@
             }
         }
 
-        function setTab(tab) {
-            // 데이터 검증
+        async function setTab(tab) {
+            // 데이터 검증 및 로드
+            if (!DB[currentDay]) {
+                try {
+                    await loadDayData(currentDay);
+                } catch (error) {
+                    console.error(`Day ${currentDay} 데이터 로드 실패:`, error);
+                    return;
+                }
+            }
+
             const data = DB[currentDay];
             if (!data) {
                 console.error(`Day ${currentDay} 데이터가 없습니다.`);
@@ -1192,7 +1371,7 @@
                     </div>`;
                 });
             } else if (tab === 'favorite') {
-                html = renderFavorites();
+                html = await renderFavorites();
             } else if (tab === 'quiz') {
                 html = renderQuiz(data);
             }

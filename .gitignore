@@ -128,6 +128,10 @@ personal/
 *.sqlite
 *.sqlite3
 
+# Original data file (now using separated files in data/ folder)
+data.json
+migrate_data.py
+
 # Package files
 *.tgz
 *.tar.gz
