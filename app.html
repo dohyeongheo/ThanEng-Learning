@@ -22,10 +22,71 @@
             font-family: 'Sarabun', sans-serif;
         }
 
+        .card-press {
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+        }
+
+        .card-press:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
         .card-press:active {
             transform: scale(0.98);
             background-color: #f9fafb;
             transition: 0.1s;
+        }
+
+        /* 페이지 전환 애니메이션 */
+        #view-list,
+        #view-detail {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 카드 등장 애니메이션 */
+        .card-enter {
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 로딩 스피너 개선 */
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 부드러운 스크롤 */
+        html {
+            scroll-behavior: smooth;
         }
 
         .tab-active {
@@ -47,15 +108,32 @@
     <!-- VIEW 1: DAY LIST -->
     <div id="view-list" class="flex flex-col h-full bg-[#f2f4f6]">
         <div class="px-6 pt-12 pb-4 bg-white sticky top-0 z-10 rounded-b-3xl shadow-sm">
-            <h1 class="text-2xl font-black mb-1">방콕 생존 완성 🔥</h1>
-            <p class="text-[#8b95a1] text-sm">태국어 & 영어 학습 앱</p>
+            <div class="flex items-center justify-between mb-2">
+                <div>
+                    <h1 class="text-2xl font-black mb-1">방콕 생존 완성 🔥</h1>
+                    <p class="text-[#8b95a1] text-sm">태국어 & 영어 학습 앱</p>
+                </div>
+                <button id="theme-toggle" onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="다크 모드 토글">
+                    <i id="theme-icon" class="fas fa-moon text-xl text-gray-600"></i>
+                </button>
+            </div>
+            <!-- 검색 입력창 -->
+            <div class="mt-4 relative">
+                <input type="text" id="search-input" placeholder="태국어, 한글 발음, 한국어 의미로 검색..."
+                    class="w-full px-4 py-2 pl-10 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#3182f6] focus:border-transparent"
+                    aria-label="검색 입력">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
+                <button id="search-clear" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden" aria-label="검색 지우기">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
         <div class="flex-1 overflow-y-auto p-4 space-y-3" id="list-container">
             <div class="flex items-center justify-center h-full">
-                <div class="text-center">
-                    <i class="fas fa-spinner fa-spin text-4xl text-[#3182f6] mb-4"></i>
-                    <p class="text-gray-500">데이터를 불러오는 중...</p>
-                </div>
+                    <div class="text-center">
+                        <i class="fas fa-spinner spinner text-4xl text-[#3182f6] mb-4"></i>
+                        <p class="text-gray-500">데이터를 불러오는 중...</p>
+                    </div>
             </div>
         </div>
     </div>
@@ -64,10 +142,12 @@
     <div id="view-detail" class="hidden flex-col h-full bg-white">
         <!-- Header -->
         <div class="px-4 py-3 border-b border-[#f2f4f6] flex items-center justify-between sticky top-0 bg-white z-20">
-            <button onclick="goBack()" class="p-2 rounded-full hover:bg-gray-100" aria-label="뒤로가기"><i
+            <button onclick="goBack()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="뒤로가기"><i
                     class="fas fa-arrow-left text-xl" aria-hidden="true"></i></button>
             <span class="font-bold text-lg" id="header-title">DAY 1</span>
-            <div class="w-8"></div>
+            <button id="theme-toggle-detail" onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="다크 모드 토글">
+                <i id="theme-icon-detail" class="fas fa-moon text-xl text-gray-600"></i>
+            </button>
         </div>
 
         <!-- Tabs -->
@@ -77,13 +157,15 @@
                     aria-label="태국어 탭">태국어 (<span id="count-th">0</span>)</button>
                 <button onclick="setTab('en')" id="btn-en" class="flex-1 py-3 rounded-lg tab-inactive"
                     aria-label="영어 탭">영어 (<span id="count-en">0</span>)</button>
+                <button onclick="setTab('favorite')" id="btn-favorite" class="flex-1 py-3 rounded-lg tab-inactive"
+                    aria-label="즐겨찾기 탭">즐겨찾기 (<span id="count-favorite">0</span>)</button>
                 <button onclick="setTab('quiz')" id="btn-quiz" class="flex-1 py-3 rounded-lg tab-inactive"
                     aria-label="퀴즈 탭">퀴즈 (TEST)</button>
             </div>
         </div>
 
         <!-- Content -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-10" id="content-area"></div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-10" id="content-area" role="tabpanel" aria-live="polite" aria-atomic="true"></div>
     </div>
 
     <script>
@@ -103,28 +185,225 @@
         // ============================================================
         let DB = {}; // 데이터베이스 객체 (동적으로 로드됨)
 
-        // data.json 파일 로드
+        // Storage Manager
+        const StorageManager = {
+            CACHE_KEY: 'thaieng_data_cache',
+            ETAG_KEY: 'thaieng_data_etag',
+            TIMESTAMP_KEY: 'thaieng_data_timestamp',
+            CACHE_DURATION: 24 * 60 * 60 * 1000, // 24시간
+            FAVORITE_KEY: 'thaieng_favorites',
+
+            getCachedData() {
+                try {
+                    const cached = localStorage.getItem(this.CACHE_KEY);
+                    const timestamp = localStorage.getItem(this.TIMESTAMP_KEY);
+                    if (cached && timestamp) {
+                        const age = Date.now() - parseInt(timestamp);
+                        if (age < this.CACHE_DURATION) {
+                            return JSON.parse(cached);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('캐시 읽기 실패:', e);
+                }
+                return null;
+            },
+
+            setCachedData(data, etag) {
+                try {
+                    localStorage.setItem(this.CACHE_KEY, JSON.stringify(data));
+                    localStorage.setItem(this.ETAG_KEY, etag || '');
+                    localStorage.setItem(this.TIMESTAMP_KEY, Date.now().toString());
+                } catch (e) {
+                    console.warn('캐시 저장 실패:', e);
+                    // localStorage가 가득 찬 경우 오래된 데이터 삭제 시도
+                    if (e.name === 'QuotaExceededError') {
+                        this.clearCache();
+                    }
+                }
+            },
+
+            getEtag() {
+                return localStorage.getItem(this.ETAG_KEY) || null;
+            },
+
+            clearCache() {
+                localStorage.removeItem(this.CACHE_KEY);
+                localStorage.removeItem(this.ETAG_KEY);
+                localStorage.removeItem(this.TIMESTAMP_KEY);
+            },
+
+            // 즐겨찾기 관리
+            getFavorites() {
+                try {
+                    const favorites = localStorage.getItem(this.FAVORITE_KEY);
+                    return favorites ? JSON.parse(favorites) : [];
+                } catch (e) {
+                    console.warn('즐겨찾기 읽기 실패:', e);
+                    return [];
+                }
+            },
+
+            addFavorite(day, lang, index) {
+                try {
+                    const favorites = this.getFavorites();
+                    const key = `${day}_${lang}_${index}`;
+                    if (!favorites.includes(key)) {
+                        favorites.push(key);
+                        localStorage.setItem(this.FAVORITE_KEY, JSON.stringify(favorites));
+                    }
+                } catch (e) {
+                    console.warn('즐겨찾기 추가 실패:', e);
+                }
+            },
+
+            removeFavorite(day, lang, index) {
+                try {
+                    const favorites = this.getFavorites();
+                    const key = `${day}_${lang}_${index}`;
+                    const indexToRemove = favorites.indexOf(key);
+                    if (indexToRemove > -1) {
+                        favorites.splice(indexToRemove, 1);
+                        localStorage.setItem(this.FAVORITE_KEY, JSON.stringify(favorites));
+                    }
+                } catch (e) {
+                    console.warn('즐겨찾기 제거 실패:', e);
+                }
+            },
+
+            isFavorite(day, lang, index) {
+                const favorites = this.getFavorites();
+                const key = `${day}_${lang}_${index}`;
+                return favorites.includes(key);
+            }
+        };
+
+        // data.json 파일 로드 (캐싱 지원)
         async function loadData() {
+            const container = document.getElementById('list-container');
+
+            // 캐시된 데이터가 있으면 먼저 표시
+            const cachedData = StorageManager.getCachedData();
+            if (cachedData) {
+                DB = cachedData;
+                normalizeDB();
+                renderList();
+                // 백그라운드에서 업데이트 확인
+                updateDataInBackground();
+                return;
+            }
+
+            // 캐시가 없으면 서버에서 로드
             try {
-                const response = await fetch('data.json');
+                updateLoadingProgress(0);
+                const etag = StorageManager.getEtag();
+                const headers = {};
+                if (etag) {
+                    headers['If-None-Match'] = etag;
+                }
+
+                const response = await fetch('data.json', { headers });
+                updateLoadingProgress(50);
+
+                if (response.status === 304) {
+                    // Not Modified - 캐시 사용
+                    const cached = StorageManager.getCachedData();
+                    if (cached) {
+                        DB = cached;
+                        normalizeDB();
+                        renderList();
+                        return;
+                    }
+                }
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
+
                 const data = await response.json();
+                updateLoadingProgress(80);
+
                 DB = data;
+                normalizeDB();
 
-                // 키를 숫자로 변환 (JSON은 키를 문자열로 저장)
-                const normalizedDB = {};
-                for (const [key, value] of Object.entries(DB)) {
-                    normalizedDB[parseInt(key)] = value;
-                }
-                DB = normalizedDB;
+                // ETag 저장
+                const newEtag = response.headers.get('ETag') || response.headers.get('etag');
+                StorageManager.setCachedData(data, newEtag);
 
-                // 데이터 로드 완료 후 UI 업데이트
+                updateLoadingProgress(100);
                 renderList();
             } catch (error) {
                 console.error('데이터 로드 실패:', error);
-                showError('데이터를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
+                // 캐시된 데이터가 있으면 사용
+                const cached = StorageManager.getCachedData();
+                if (cached) {
+                    DB = cached;
+                    normalizeDB();
+                    renderList();
+                    showWarning('오프라인 모드: 캐시된 데이터를 사용합니다.');
+                } else {
+                    showError('데이터를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
+                }
+            }
+        }
+
+        // 백그라운드에서 데이터 업데이트 확인
+        async function updateDataInBackground() {
+            try {
+                const etag = StorageManager.getEtag();
+                const headers = {};
+                if (etag) {
+                    headers['If-None-Match'] = etag;
+                }
+
+                const response = await fetch('data.json', { headers });
+
+                if (response.status === 304) {
+                    // 데이터 변경 없음
+                    return;
+                }
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const newEtag = response.headers.get('ETag') || response.headers.get('etag');
+                    StorageManager.setCachedData(data, newEtag);
+
+                    // 데이터 업데이트
+                    DB = data;
+                    normalizeDB();
+                    renderList();
+                }
+            } catch (error) {
+                // 백그라운드 업데이트 실패는 무시
+                console.debug('백그라운드 업데이트 실패:', error);
+            }
+        }
+
+        // DB 정규화 (키를 숫자로 변환)
+        function normalizeDB() {
+            const normalizedDB = {};
+            for (const [key, value] of Object.entries(DB)) {
+                normalizedDB[parseInt(key)] = value;
+            }
+            DB = normalizedDB;
+        }
+
+        // 로딩 진행률 업데이트
+        function updateLoadingProgress(percent) {
+            const container = document.getElementById('list-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="flex items-center justify-center h-full">
+                        <div class="text-center">
+                            <i class="fas fa-spinner spinner text-4xl text-[#3182f6] mb-4"></i>
+                            <p class="text-gray-500 mb-2">데이터를 불러오는 중...</p>
+                            <div class="w-64 bg-gray-200 rounded-full h-2">
+                                <div class="bg-[#3182f6] h-2 rounded-full transition-all duration-300" style="width: ${percent}%"></div>
+                            </div>
+                            <p class="text-gray-400 text-sm mt-2">${percent}%</p>
+                        </div>
+                    </div>
+                `;
             }
         }
 
@@ -141,6 +420,31 @@
                     </button>
                 </div>
             `;
+        }
+
+        // 경고 메시지 표시
+        function showWarning(message) {
+            const container = document.getElementById('list-container');
+            const existingWarning = container.querySelector('.warning-message');
+            if (existingWarning) {
+                existingWarning.remove();
+            }
+
+            const warningDiv = document.createElement('div');
+            warningDiv.className = 'warning-message bg-yellow-50 border border-yellow-200 p-3 rounded-xl text-center mb-3';
+            warningDiv.innerHTML = `
+                <p class="text-yellow-700 text-sm">
+                    <i class="fas fa-info-circle mr-2"></i>${escapeHtml(message)}
+                </p>
+            `;
+            container.insertBefore(warningDiv, container.firstChild);
+
+            // 5초 후 자동 제거
+            setTimeout(() => {
+                if (warningDiv.parentNode) {
+                    warningDiv.remove();
+                }
+            }, 5000);
         }
 
         // ============================================================
@@ -174,20 +478,331 @@
                     goBack();
                 }
             });
+
+            // 검색 기능 초기화
+            initSearch();
+
+            // 다크 모드 초기화
+            initTheme();
+
+            // 키보드 네비게이션 초기화
+            initKeyboardNavigation();
         };
+
+        // 키보드 네비게이션 초기화
+        function initKeyboardNavigation() {
+            // Enter 키로 카드 클릭
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && e.target.hasAttribute('role') && e.target.getAttribute('role') === 'button') {
+                    e.target.click();
+                }
+
+                // ESC 키로 뒤로가기
+                if (e.key === 'Escape' && document.getElementById('view-detail').classList.contains('flex')) {
+                    goBack();
+                }
+
+                // Tab 키로 포커스 관리
+                if (e.key === 'Tab') {
+                    const focusableElements = document.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                    const firstElement = focusableElements[0];
+                    const lastElement = focusableElements[focusableElements.length - 1];
+
+                    if (e.shiftKey && document.activeElement === firstElement) {
+                        e.preventDefault();
+                        lastElement.focus();
+                    } else if (!e.shiftKey && document.activeElement === lastElement) {
+                        e.preventDefault();
+                        firstElement.focus();
+                    }
+                }
+
+                // 화살표 키로 탭 전환
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    const tabs = ['th', 'en', 'favorite', 'quiz'];
+                    const currentIndex = tabs.indexOf(currentTab);
+                    if (currentIndex !== -1) {
+                        if (e.key === 'ArrowLeft' && currentIndex > 0) {
+                            e.preventDefault();
+                            setTab(tabs[currentIndex - 1]);
+                        } else if (e.key === 'ArrowRight' && currentIndex < tabs.length - 1) {
+                            e.preventDefault();
+                            setTab(tabs[currentIndex + 1]);
+                        }
+                    }
+                }
+            });
+
+            // 포커스 트랩 (모달이나 상세 화면에서)
+            function trapFocus(element) {
+                const focusableElements = element.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+
+                element.addEventListener('keydown', function(e) {
+                    if (e.key === 'Tab') {
+                        if (e.shiftKey && document.activeElement === firstElement) {
+                            e.preventDefault();
+                            lastElement.focus();
+                        } else if (!e.shiftKey && document.activeElement === lastElement) {
+                            e.preventDefault();
+                            firstElement.focus();
+                        }
+                    }
+                });
+            }
+
+            // 상세 화면에 포커스 트랩 적용
+            const detailView = document.getElementById('view-detail');
+            if (detailView) {
+                trapFocus(detailView);
+            }
+        }
+
+        // 다크 모드 초기화
+        function initTheme() {
+            const savedTheme = localStorage.getItem('thaieng_theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+            applyTheme(theme);
+        }
+
+        // 테마 적용
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            const icon = document.getElementById('theme-icon');
+            const iconDetail = document.getElementById('theme-icon-detail');
+
+            if (theme === 'dark') {
+                if (icon) icon.className = 'fas fa-sun text-xl text-yellow-400';
+                if (iconDetail) iconDetail.className = 'fas fa-sun text-xl text-yellow-400';
+            } else {
+                if (icon) icon.className = 'fas fa-moon text-xl text-gray-600';
+                if (iconDetail) iconDetail.className = 'fas fa-moon text-xl text-gray-600';
+            }
+
+            localStorage.setItem('thaieng_theme', theme);
+        }
+
+        // 테마 토글
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+        }
+
+        // 시스템 테마 변경 감지
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            const savedTheme = localStorage.getItem('thaieng_theme');
+            if (!savedTheme) {
+                applyTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+
+        // 검색 기능 초기화
+        function initSearch() {
+            const searchInput = document.getElementById('search-input');
+            const searchClear = document.getElementById('search-clear');
+
+            if (!searchInput) return;
+
+            // 실시간 검색
+            searchInput.addEventListener('input', function(e) {
+                const query = e.target.value.trim();
+                if (query.length > 0) {
+                    searchClear.classList.remove('hidden');
+                    performSearch(query);
+                } else {
+                    searchClear.classList.add('hidden');
+                    renderList();
+                }
+            });
+
+            // 검색 지우기
+            if (searchClear) {
+                searchClear.addEventListener('click', function() {
+                    searchInput.value = '';
+                    searchClear.classList.add('hidden');
+                    renderList();
+                    searchInput.focus();
+                });
+            }
+
+            // ESC 키로 검색 취소
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    searchInput.value = '';
+                    searchClear.classList.add('hidden');
+                    renderList();
+                }
+            });
+        }
+
+        // 검색 수행
+        function performSearch(query) {
+            if (!query || query.length === 0) {
+                renderList();
+                return;
+            }
+
+            const container = document.getElementById('list-container');
+            const lowerQuery = query.toLowerCase();
+            const results = [];
+
+            // 모든 Day와 단어 검색
+            for (const [day, data] of Object.entries(DB)) {
+                const dayResults = {
+                    day: parseInt(day),
+                    topic: data.topic,
+                    items: []
+                };
+
+                // 태국어 검색
+                if (data.th) {
+                    data.th.forEach((item, i) => {
+                        if (!item || !item.t) return;
+                        const matches =
+                            item.t.toLowerCase().includes(lowerQuery) ||
+                            (item.k && item.k.toLowerCase().includes(lowerQuery)) ||
+                            (item.m && item.m.toLowerCase().includes(lowerQuery));
+
+                        if (matches) {
+                            dayResults.items.push({
+                                type: 'th',
+                                index: i,
+                                item: item
+                            });
+                        }
+                    });
+                }
+
+                // 영어 검색
+                if (data.en) {
+                    data.en.forEach((item, i) => {
+                        if (!item || !item.t) return;
+                        const matches =
+                            item.t.toLowerCase().includes(lowerQuery) ||
+                            (item.m && item.m.toLowerCase().includes(lowerQuery));
+
+                        if (matches) {
+                            dayResults.items.push({
+                                type: 'en',
+                                index: i,
+                                item: item
+                            });
+                        }
+                    });
+                }
+
+                if (dayResults.items.length > 0) {
+                    results.push(dayResults);
+                }
+            }
+
+            // 검색 결과 렌더링
+            renderSearchResults(results, query);
+        }
+
+        // 검색 결과 렌더링
+        function renderSearchResults(results, query) {
+            const container = document.getElementById('list-container');
+
+            if (results.length === 0) {
+                container.innerHTML = `
+                    <div class="flex items-center justify-center h-full">
+                        <div class="text-center">
+                            <i class="fas fa-search text-4xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500">검색 결과가 없습니다</p>
+                            <p class="text-gray-400 text-sm mt-2">"${escapeHtml(query)}"</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `<div class="mb-4 text-sm text-gray-500">검색 결과: <span class="font-bold text-[#3182f6]">${results.length}개 Day</span>, 총 <span class="font-bold text-[#3182f6]">${results.reduce((sum, r) => sum + r.items.length, 0)}개</span> 단어</div>`;
+
+            results.forEach(result => {
+                html += `
+                <div class="mb-6">
+                    <div class="bg-white p-4 rounded-2xl mb-3 border border-blue-100">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <span class="text-[#3182f6] text-xs font-bold">DAY ${result.day}</span>
+                                <h3 class="text-base font-bold text-[#333] mt-1">${escapeHtml(result.topic)}</h3>
+                            </div>
+                            <button onclick="openDay(${result.day})" class="text-[#3182f6] text-sm font-bold hover:underline" aria-label="DAY ${result.day} 보기">
+                                보기 <i class="fas fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                `;
+
+                result.items.forEach(({ type, index, item }) => {
+                    if (type === 'th') {
+                        const escapedT = escapeHtml(item.t);
+                        const escapedK = escapeHtml(item.k || '');
+                        const escapedM = escapeHtml(item.m || '');
+                        html += `
+                        <div onclick="openDay(${result.day}); setTimeout(() => setTab('th'), 100);" class="bg-white p-4 rounded-xl border border-gray-100 card-press cursor-pointer hover:border-blue-200" role="button" tabindex="0">
+                            <div class="flex items-start justify-between mb-1">
+                                <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">태국어 #${index + 1}</span>
+                                <i class="fas fa-volume-high text-gray-300 text-sm" aria-hidden="true"></i>
+                            </div>
+                            <h4 class="text-lg font-bold text-[#333] mb-1 thai-font">${highlightText(escapedT, query)}</h4>
+                            <p class="text-sm text-[#ef4444] font-bold mb-1">${highlightText(escapedK, query)}</p>
+                            <p class="text-sm text-gray-500">${highlightText(escapedM, query)}</p>
+                        </div>
+                        `;
+                    } else {
+                        const escapedT = escapeHtml(item.t);
+                        const escapedM = escapeHtml(item.m || '');
+                        html += `
+                        <div onclick="openDay(${result.day}); setTimeout(() => setTab('en'), 100);" class="bg-white p-4 rounded-xl border border-gray-100 card-press cursor-pointer hover:border-blue-200" role="button" tabindex="0">
+                            <div class="flex items-start justify-between mb-1">
+                                <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">영어 #${index + 1}</span>
+                                <i class="fas fa-volume-high text-gray-300 text-sm" aria-hidden="true"></i>
+                            </div>
+                            <h4 class="text-base font-bold text-[#333] mb-1 italic">"${highlightText(escapedT, query)}"</h4>
+                            <p class="text-sm text-gray-500">${highlightText(escapedM, query)}</p>
+                        </div>
+                        `;
+                    }
+                });
+
+                html += `</div></div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 텍스트 하이라이트
+        function highlightText(text, query) {
+            if (!query || query.length === 0) return text;
+            const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+            return text.replace(regex, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>');
+        }
+
+        // 정규식 특수문자 이스케이프
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
 
         function renderList() {
             const container = document.getElementById('list-container');
             let html = '';
+            let delay = 0;
             for (const [day, data] of Object.entries(DB)) {
                 html += `
-                <div onclick="openDay(${day})" class="bg-white p-5 rounded-2xl flex justify-between items-center card-press cursor-pointer border border-transparent hover:border-blue-100 shadow-sm" role="button" tabindex="0" aria-label="DAY ${day}: ${escapeHtml(data.topic)}">
+                <div onclick="openDay(${day})" class="bg-white p-5 rounded-2xl flex justify-between items-center card-press cursor-pointer border border-transparent hover:border-blue-100 shadow-sm card-enter" role="button" tabindex="0" aria-label="DAY ${day}: ${escapeHtml(data.topic)}" style="animation-delay: ${delay * 0.05}s;">
                     <div>
                         <span class="text-[#3182f6] text-xs font-bold block mb-1">DAY ${day}</span>
                         <h3 class="text-lg font-bold text-[#333]">${escapeHtml(data.topic)}</h3>
                     </div>
                     <i class="fas fa-chevron-right text-gray-300" aria-hidden="true"></i>
                 </div>`;
+                delay++;
             }
             container.innerHTML = html;
         }
@@ -205,8 +820,16 @@
             quizLangToggle = true; // 퀴즈 언어 토글 초기화 (태국어부터 시작)
 
             document.getElementById('view-list').classList.add('hidden');
-            document.getElementById('view-detail').classList.remove('hidden');
-            document.getElementById('view-detail').classList.add('flex');
+            const detailView = document.getElementById('view-detail');
+            detailView.classList.remove('hidden');
+            detailView.classList.add('flex');
+            // 애니메이션 트리거
+            setTimeout(() => {
+                detailView.style.animation = 'none';
+                setTimeout(() => {
+                    detailView.style.animation = '';
+                }, 10);
+            }, 0);
 
             const topic = DB[day].topic.split('(')[0].trim();
             document.getElementById('header-title').textContent = `DAY ${day}: ${topic}`;
@@ -228,17 +851,171 @@
                 const enCount = data.en ? data.en.length : 0;
                 document.getElementById('count-th').textContent = thCount;
                 document.getElementById('count-en').textContent = enCount;
+
+                // 즐겨찾기 개수 업데이트
+                const favorites = StorageManager.getFavorites();
+                document.getElementById('count-favorite').textContent = favorites.length;
             }
         }
 
+        // 즐겨찾기 토글
+        function toggleFavorite(day, lang, index) {
+            if (StorageManager.isFavorite(day, lang, index)) {
+                StorageManager.removeFavorite(day, lang, index);
+            } else {
+                StorageManager.addFavorite(day, lang, index);
+            }
+            updateTabCounts();
+            // 현재 탭이 즐겨찾기면 다시 렌더링
+            if (currentTab === 'favorite') {
+                setTab('favorite');
+            } else {
+                // 현재 탭 다시 렌더링하여 즐겨찾기 아이콘 업데이트
+                setTab(currentTab);
+            }
+        }
+
+        // 즐겨찾기 렌더링
+        function renderFavorites() {
+            const favorites = StorageManager.getFavorites();
+
+            if (favorites.length === 0) {
+                return `
+                <div class="flex flex-col h-full justify-center items-center">
+                    <i class="fas fa-star text-4xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-500">즐겨찾기한 단어가 없습니다</p>
+                    <p class="text-gray-400 text-sm mt-2">단어 카드의 별 아이콘을 클릭하여 즐겨찾기에 추가하세요</p>
+                </div>`;
+            }
+
+            let html = '';
+            const favoriteItems = [];
+
+            // 모든 즐겨찾기 항목 수집
+            favorites.forEach(key => {
+                const [day, lang, index] = key.split('_');
+                const dayNum = parseInt(day);
+                const idx = parseInt(index);
+
+                if (DB[dayNum]) {
+                    const data = DB[dayNum];
+                    let item = null;
+
+                    if (lang === 'th' && data.th && data.th[idx]) {
+                        item = { ...data.th[idx], day: dayNum, lang: 'th', index: idx };
+                    } else if (lang === 'en' && data.en && data.en[idx]) {
+                        item = { ...data.en[idx], day: dayNum, lang: 'en', index: idx };
+                    }
+
+                    if (item) {
+                        favoriteItems.push(item);
+                    }
+                }
+            });
+
+            // Day별로 그룹화
+            const groupedByDay = {};
+            favoriteItems.forEach(item => {
+                if (!groupedByDay[item.day]) {
+                    groupedByDay[item.day] = [];
+                }
+                groupedByDay[item.day].push(item);
+            });
+
+            // 렌더링
+            Object.keys(groupedByDay).sort((a, b) => parseInt(a) - parseInt(b)).forEach(day => {
+                const dayData = DB[parseInt(day)];
+                const items = groupedByDay[day];
+
+                html += `
+                <div class="mb-6">
+                    <div class="bg-blue-50 p-4 rounded-2xl mb-3 border border-blue-100">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-[#3182f6] text-xs font-bold">DAY ${day}</span>
+                                <h3 class="text-base font-bold text-[#333] mt-1">${escapeHtml(dayData.topic)}</h3>
+                            </div>
+                            <button onclick="openDay(${day})" class="text-[#3182f6] text-sm font-bold hover:underline" aria-label="DAY ${day} 보기">
+                                보기 <i class="fas fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                `;
+
+                items.forEach(item => {
+                    if (item.lang === 'th') {
+                        const escapedT = escapeHtml(item.t);
+                        const escapedK = escapeHtml(item.k || '');
+                        const escapedM = escapeHtml(item.m || '');
+                        html += `
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 card-press cursor-pointer relative" role="button" tabindex="0">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">태국어 #${item.index + 1}</span>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="event.stopPropagation(); toggleFavorite(${item.day}, 'th', ${item.index});"
+                                        class="p-2 rounded-full hover:bg-gray-100 text-yellow-500"
+                                        aria-label="즐겨찾기 해제">
+                                        <i class="fas fa-star"></i>
+                                    </button>
+                                    <i class="fas fa-volume-high text-gray-300 cursor-pointer" onclick="event.stopPropagation(); speak('${escapedT.replace(/'/g, "\\'")}', 'th');" aria-hidden="true"></i>
+                                </div>
+                            </div>
+                            <div onclick="openDay(${item.day}); setTimeout(() => setTab('th'), 100);">
+                                <h3 class="text-xl font-bold text-[#333] mb-1 thai-font leading-relaxed">${escapedT}</h3>
+                                <p class="text-sm text-[#ef4444] font-bold mb-1">${escapedK}</p>
+                                <p class="text-sm text-gray-500">${escapedM}</p>
+                            </div>
+                        </div>
+                        `;
+                    } else {
+                        const escapedT = escapeHtml(item.t);
+                        const escapedM = escapeHtml(item.m || '');
+                        html += `
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 card-press cursor-pointer relative" role="button" tabindex="0">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">영어 #${item.index + 1}</span>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="event.stopPropagation(); toggleFavorite(${item.day}, 'en', ${item.index});"
+                                        class="p-2 rounded-full hover:bg-gray-100 text-yellow-500"
+                                        aria-label="즐겨찾기 해제">
+                                        <i class="fas fa-star"></i>
+                                    </button>
+                                    <i class="fas fa-volume-high text-gray-300 cursor-pointer" onclick="event.stopPropagation(); speak('${escapedT.replace(/'/g, "\\'")}', 'en');" aria-hidden="true"></i>
+                                </div>
+                            </div>
+                            <div onclick="openDay(${item.day}); setTimeout(() => setTab('en'), 100);">
+                                <h3 class="text-lg font-bold text-[#333] mb-2 italic serif">"${escapedT}"</h3>
+                                <p class="text-sm text-gray-500 font-medium">${escapedM}</p>
+                            </div>
+                        </div>
+                        `;
+                    }
+                });
+
+                html += `</div></div>`;
+            });
+
+            return html;
+        }
+
         function goBack() {
-            document.getElementById('view-detail').classList.remove('flex');
-            document.getElementById('view-detail').classList.add('hidden');
-            document.getElementById('view-list').classList.remove('hidden');
+            const detailView = document.getElementById('view-detail');
+            detailView.classList.remove('flex');
+            detailView.classList.add('hidden');
+            const listView = document.getElementById('view-list');
+            listView.classList.remove('hidden');
+            // 애니메이션 트리거
+            setTimeout(() => {
+                listView.style.animation = 'none';
+                setTimeout(() => {
+                    listView.style.animation = '';
+                }, 10);
+            }, 0);
 
             // TTS 중지
             if (window.speechSynthesis) {
-                window.speechSynthesis.cancel();
+            window.speechSynthesis.cancel();
             }
 
             // 히스토리 관리
@@ -265,17 +1042,19 @@
             quizAnswered = false; // 퀴즈 상태 초기화
 
             // Button Styles
-            ['th', 'en', 'quiz'].forEach(t => {
+            ['th', 'en', 'favorite', 'quiz'].forEach(t => {
                 const btn = document.getElementById(`btn-${t}`);
                 if (btn) {
-                    if (t === tab) {
-                        btn.classList.add('tab-active');
-                        btn.classList.remove('tab-inactive');
+                if (t === tab) {
+                    btn.classList.add('tab-active');
+                    btn.classList.remove('tab-inactive');
                         btn.setAttribute('aria-selected', 'true');
+                        btn.setAttribute('tabindex', '0');
                     } else {
                         btn.classList.add('tab-inactive');
                         btn.classList.remove('tab-active');
                         btn.setAttribute('aria-selected', 'false');
+                        btn.setAttribute('tabindex', '-1');
                     }
                 }
             });
@@ -288,15 +1067,25 @@
                     const escapedT = escapeHtml(item.t);
                     const escapedK = escapeHtml(item.k || '');
                     const escapedM = escapeHtml(item.m || '');
+                    const isFav = StorageManager.isFavorite(currentDay, 'th', i);
                     html += `
-                    <div onclick="speak('${escapedT.replace(/'/g, "\\'")}', 'th')" class="bg-white p-5 rounded-2xl border border-gray-100 card-press cursor-pointer relative" role="button" tabindex="0" aria-label="태국어 표현 ${i + 1}">
+                    <div class="bg-white p-5 rounded-2xl border border-gray-100 card-press cursor-pointer relative" role="button" tabindex="0" aria-label="태국어 표현 ${i + 1}">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">#${i + 1}</span>
-                            <i class="fas fa-volume-high text-gray-300" aria-hidden="true"></i>
+                            <div class="flex items-center gap-2">
+                                <button onclick="event.stopPropagation(); toggleFavorite(${currentDay}, 'th', ${i});"
+                                    class="p-2 rounded-full hover:bg-gray-100 ${isFav ? 'text-yellow-500' : 'text-gray-300'}"
+                                    aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 추가'}">
+                                    <i class="fas fa-star ${isFav ? 'fas' : 'far'}"></i>
+                                </button>
+                                <i class="fas fa-volume-high text-gray-300 cursor-pointer" onclick="event.stopPropagation(); speak('${escapedT.replace(/'/g, "\\'")}', 'th');" aria-hidden="true"></i>
+                            </div>
                         </div>
-                        <h3 class="text-xl font-bold text-[#333] mb-1 thai-font leading-relaxed">${escapedT}</h3>
-                        <p class="text-sm text-[#ef4444] font-bold mb-1">${escapedK}</p>
-                        <p class="text-sm text-gray-500">${escapedM}</p>
+                        <div onclick="speak('${escapedT.replace(/'/g, "\\'")}', 'th')">
+                            <h3 class="text-xl font-bold text-[#333] mb-1 thai-font leading-relaxed">${escapedT}</h3>
+                            <p class="text-sm text-[#ef4444] font-bold mb-1">${escapedK}</p>
+                            <p class="text-sm text-gray-500">${escapedM}</p>
+                        </div>
                     </div>`;
                 });
             } else if (tab === 'en' && data.en) {
@@ -304,16 +1093,28 @@
                     if (!item || !item.t) return; // 빈 데이터 스킵
                     const escapedT = escapeHtml(item.t);
                     const escapedM = escapeHtml(item.m || '');
+                    const isFav = StorageManager.isFavorite(currentDay, 'en', i);
                     html += `
-                    <div onclick="speak('${escapedT.replace(/'/g, "\\'")}', 'en')" class="bg-white p-5 rounded-2xl border border-gray-100 card-press cursor-pointer relative" role="button" tabindex="0" aria-label="영어 표현 ${i + 1}">
+                    <div class="bg-white p-5 rounded-2xl border border-gray-100 card-press cursor-pointer relative" role="button" tabindex="0" aria-label="영어 표현 ${i + 1}">
                         <div class="flex justify-between items-start mb-2">
                             <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">#${i + 1}</span>
-                            <i class="fas fa-volume-high text-gray-300" aria-hidden="true"></i>
+                            <div class="flex items-center gap-2">
+                                <button onclick="event.stopPropagation(); toggleFavorite(${currentDay}, 'en', ${i});"
+                                    class="p-2 rounded-full hover:bg-gray-100 ${isFav ? 'text-yellow-500' : 'text-gray-300'}"
+                                    aria-label="${isFav ? '즐겨찾기 해제' : '즐겨찾기 추가'}">
+                                    <i class="fas fa-star ${isFav ? 'fas' : 'far'}"></i>
+                                </button>
+                                <i class="fas fa-volume-high text-gray-300 cursor-pointer" onclick="event.stopPropagation(); speak('${escapedT.replace(/'/g, "\\'")}', 'en');" aria-hidden="true"></i>
+                            </div>
                         </div>
-                        <h3 class="text-lg font-bold text-[#333] mb-2 italic serif">"${escapedT}"</h3>
-                        <p class="text-sm text-gray-500 font-medium">${escapedM}</p>
+                        <div onclick="speak('${escapedT.replace(/'/g, "\\'")}', 'en')">
+                            <h3 class="text-lg font-bold text-[#333] mb-2 italic serif">"${escapedT}"</h3>
+                            <p class="text-sm text-gray-500 font-medium">${escapedM}</p>
+                        </div>
                     </div>`;
                 });
+            } else if (tab === 'favorite') {
+                html = renderFavorites();
             } else if (tab === 'quiz') {
                 html = renderQuiz(data);
             }
@@ -563,20 +1364,20 @@
             }
 
             try {
-                window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance(text);
-                u.rate = 0.85;
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.rate = 0.85;
                 u.volume = 1.0;
                 u.pitch = 1.0;
 
-                if (lang === 'th') {
-                    u.lang = 'th-TH';
+            if (lang === 'th') {
+                u.lang = 'th-TH';
                     const v = voices.find(v => v.lang === 'th-TH' || v.lang.startsWith('th'));
-                    if (v) u.voice = v;
-                } else {
-                    u.lang = 'en-US';
+                if (v) u.voice = v;
+            } else {
+                u.lang = 'en-US';
                     const v = voices.find(v => v.lang === 'en-US' || v.lang.startsWith('en'));
-                    if (v) u.voice = v;
+                if (v) u.voice = v;
                 }
 
                 // 에러 핸들링
