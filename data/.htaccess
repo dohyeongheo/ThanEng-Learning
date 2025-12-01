@@ -1,9 +1,0 @@
-# JSON 파일 직접 접근 제한
-# 주의: GitHub Pages는 .htaccess를 지원하지 않습니다
-# 대신 파일명을 해시로 만들어 접근을 어렵게 했습니다
-
-<FilesMatch "\.json$">
-    Order Allow,Deny
-    Deny from all
-</FilesMatch>
-

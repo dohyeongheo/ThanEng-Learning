@@ -6,18 +6,14 @@
 
 ### 방법 1: Python 사용 (가장 간단)
 
-1. **Windows (배치 파일 사용)**
-   - `start-server.bat` 파일을 더블클릭
-   - 브라우저에서 `http://localhost:8000/app.html` 열기
-
-2. **수동 실행**
-   ```bash
-   python -m http.server 8000
-   ```
-   또는 Python 3인 경우:
-   ```bash
-   python3 -m http.server 8000
-   ```
+```bash
+python -m http.server 8000
+```
+또는 Python 3인 경우:
+```bash
+python3 -m http.server 8000
+```
+브라우저에서 `http://localhost:8000/app.html` 열기
 
 ### 방법 2: Node.js 사용
 
@@ -54,8 +50,10 @@ php -S localhost:8000
 ```
 ThaiEng/
 ├── app.html          # 메인 애플리케이션
-├── data.json         # 학습 데이터
-├── start-server.bat  # Windows 서버 시작 스크립트
+├── index.html        # GitHub Pages 리다이렉트
+├── data/             # 학습 데이터 (분리된 파일)
+│   ├── index.json    # 메타데이터
+│   └── day-*.json    # Day별 데이터 파일
 └── README.md         # 이 파일
 ```
 
@@ -75,7 +73,7 @@ ThaiEng/
 
 ## 📝 데이터 수정
 
-`data.json` 파일을 수정하면 앱에 자동으로 반영됩니다.
+`data/day-*.json` 파일을 수정하면 앱에 자동으로 반영됩니다.
 서버를 재시작할 필요 없이 브라우저에서 새로고침(F5)만 하면 됩니다.
 
 ## 🎯 사용법
@@ -88,13 +86,9 @@ ThaiEng/
 
 ## 🌐 배포하기
 
-이 프로젝트를 온라인에 배포하려면 `DEPLOY.md` 파일을 참고하세요.
-
-### 빠른 배포 (GitHub Pages)
+### GitHub Pages 배포
 1. GitHub에 저장소 생성
 2. 프로젝트 푸시
-3. Settings → Pages에서 활성화
-4. 완료!
-
-자세한 내용은 `DEPLOY.md`를 확인하세요.
+3. Settings → Pages → Source에서 `main` 브랜치 선택
+4. 완료! `https://[사용자명].github.io/[저장소명]/` 에서 접속 가능
 

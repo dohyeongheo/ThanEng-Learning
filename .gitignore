@@ -130,7 +130,6 @@ personal/
 
 # Original data file (now using separated files in data/ folder)
 data.json
-migrate_data.py
 
 # Package files
 *.tgz
